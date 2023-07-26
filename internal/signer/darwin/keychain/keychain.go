@@ -149,7 +149,7 @@ type cfError struct {
 
 // cfErrorFromRef converts a C.CFErrorRef to a cfError, taking ownership of the
 // reference and releasing when the value is finalized.
-func cfErrorFromRef(cfErr C.CFErrorRef) *cfError {
+func cfErrorFromRef(cfErr C.CFErrorRef) error {
 	if cfErr == 0 {
 		return nil
 	}
