@@ -18,12 +18,8 @@ package keychain
 
 import (
 	"bytes"
-	"crypto/rand"
-	"crypto/sha256"
 	"testing"
 	"unsafe"
-
-	"fmt"
 )
 
 func TestKeychainError(t *testing.T) {
@@ -51,43 +47,6 @@ func TestBytesToCFDataRoundTrip(t *testing.T) {
 	}
 }
 
-func TestEncryptRSA(t *testing.T) {
-	hashFunc := sha256.New()
-	rng := rand.Reader
-	key, errCred := Cred("enterprise_v1_corp_client-signer-0-2018-07-03T10:55:10-07:00 K:1, 2:BXmhnePmGN4:0:18")
-	if errCred != nil {
-		t.Errorf("Cred error: %q", errCred)
-		return
-	}
-	message := []byte("Plain text to encrypt")
-
-	_, encryptErr := key.EncryptRSA(hashFunc, rng, message)
-	if encryptErr != nil {
-		t.Errorf("Encrypt error: %q", encryptErr)
-		return
-	}
-	fmt.Println("Encrypted")
-}
-
-func BenchmarkEncryptRSA(b *testing.B) {
-	hashFunc := sha256.New()
-	rng := rand.Reader
-	key, errCred := Cred("enterprise_v1_corp_client-signer-0-2018-07-03T10:55:10-07:00 K:1, 2:BXmhnePmGN4:0:18")
-	if errCred != nil {
-		b.Errorf("Cred error: %q", errCred)
-		return
-	}
-	message := []byte("Plain text to encrypt")
-
-	for i := 0; i < b.N; i++ {
-		_, encryptErr := key.EncryptRSA(hashFunc, rng, message)
-		if encryptErr != nil {
-			b.Errorf("Encrypt error: %q", encryptErr)
-			return
-		}
-	}
-}
-
 func TestEncrypt(t *testing.T) {
 	key, err := Cred("enterprise_v1_corp_client-signer-0-2018-07-03T10:55:10-07:00 K:1, 2:BXmhnePmGN4:0:18")
 	if err != nil {
@@ -95,12 +54,11 @@ func TestEncrypt(t *testing.T) {
 		return
 	}
 	plaintext := []byte("Plain text to encrypt")
-	ciphertext, encryptErr := key.Encrypt(plaintext)
-	if encryptErr != nil {
-		t.Errorf("Encrypt error: %v", encryptErr)
+	_, err = key.Encrypt(plaintext)
+	if err != nil {
+		t.Errorf("Encryption failed: %v", err)
 		return
 	}
-	fmt.Printf("Encrypted %+v\n", ciphertext)
 }
 
 func BenchmarkEncrypt(b *testing.B) {
@@ -123,74 +81,12 @@ func TestDecrypt(t *testing.T) {
 	}
 	byteSlice := []byte("Plain text to encrypt")
 	ciphertext, _ := key.Encrypt(byteSlice)
-	plaintext, decryptErr := key.Decrypt(ciphertext)
-	if decryptErr != nil {
-		t.Errorf("Decrypt error: %v", decryptErr)
-		return
-	}
-	plainString := string(plaintext)
-	fmt.Printf("Decrypted %+v\n", plainString)
-}
-
-func BenchmarkDecrypt(b *testing.B) {
-	key, err := Cred("enterprise_v1_corp_client-signer-0-2018-07-03T10:55:10-07:00 K:1, 2:BXmhnePmGN4:0:18")
+	plaintext, err := key.Decrypt(ciphertext)
 	if err != nil {
-		b.Errorf("Cred error: %q", err)
+		t.Errorf("Decryption failed: %v", err)
 		return
 	}
-	byteSlice := []byte("Plain text to encrypt")
-	ciphertext, _ := key.Encrypt(byteSlice)
-	for i := 0; i < b.N; i++ {
-		key.Decrypt(ciphertext)
-	}
-}
-
-// func TestDecryptRSA(t *testing.T) {
-// 	hashFunc := sha256.New()
-// 	rng := rand.Reader
-// 	key, errCred := Cred("enterprise_v1_corp_client-signer-0-2018-07-03T10:55:10-07:00 K:1, 2:BXmhnePmGN4:0:18")
-// 	if errCred != nil {
-// 		t.Errorf("Cred error: %q", errCred)
-// 		return
-// 	}
-// 	message := []byte("Plain text to encrypt")
-
-// 	cipherText, errEncrypt := key.EncryptRSA(hashFunc, rng, message)
-// 	if errEncrypt != nil {
-// 		t.Errorf("Encrypt error: %q", errEncrypt)
-// 		return
-// 	}
-// 	fmt.Println("Encrypted message: ", cipherText)
-
-// 	// Decrypting
-// 	// Converting hash algorithm into encryption algorithm
-// 	// var hashIn interface{} = hashFunc
-// 	// cryptoHash := hashIn.(crypto.Hash)
-// 	// rsaAlgor := rsaPKCS1v15Algorithms[cryptoHash]
-
-// 	text2Decrypt := bytesToCFData(cipherText)
-
-//		plaintext, errDecrypt := key.Decrypt(text2Decrypt)
-//		if errDecrypt != nil {
-//			t.Errorf("Encrypt error: %q", errDecrypt)
-//			return
-//		}
-//		byteSlice := (cfDataToBytes(plaintext))
-//		readable := string(byteSlice)
-//		fmt.Println("Decrypted message:", readable)
-//	}
-func BenchmarkDecryptRSA(b *testing.B) {
-	hashFunc := sha256.New()
-	rng := rand.Reader
-	key, errCred := Cred("enterprise_v1_corp_client-signer-0-2018-07-03T10:55:10-07:00 K:1, 2:BXmhnePmGN4:0:18")
-	if errCred != nil {
-		b.Errorf("Cred error: %q", errCred)
-		return
-	}
-	message := []byte("Plain text to encrypt")
-
-	ciphertext, _ := key.EncryptRSA(hashFunc, rng, message)
-	for i := 0; i < b.N; i++ {
-		key.Decrypt(ciphertext)
+	if !bytes.Equal(byteSlice, plaintext) {
+		t.Errorf("Decryption message does not match original")
 	}
 }
