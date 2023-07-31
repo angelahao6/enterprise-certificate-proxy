@@ -336,27 +336,6 @@ func Cred(issuerCN string) (*Key, error) {
 	return newKey(skr, certs, pubKey)
 }
 
-func (k *Key) PrintSupportedAlgorithms() {
-	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSAEncryptionRaw) == 1 {
-		fmt.Println("C.kSecKeyAlgorithmRSAEncryptionRaw")
-	}
-	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA256) == 1 {
-		fmt.Println("C.C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA256")
-	}
-	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSAEncryptionOAEPSHA1) == 1 {
-		fmt.Println("C.kSecKeyAlgorithmRSAEncryptionOAEPSHA1")
-	}
-	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSAEncryptionOAEPSHA256) == 1 {
-		fmt.Println("C.kSecKeyAlgorithmRSAEncryptionOAEPSHA256")
-	}
-	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSAEncryptionOAEPSHA384) == 1 {
-		fmt.Println("C.kSecKeyAlgorithmRSAEncryptionOAEPSHA384")
-	}
-	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSAEncryptionOAEPSHA512) == 1 {
-		fmt.Println("C.kSecKeyAlgorithmRSAEncryptionOAEPSHA512")
-	}
-}
-
 // identityToX509 converts a single CFDictionary that contains the item ref and
 // attribute dictionary into an x509.Certificate.
 func identityToX509(ident C.SecIdentityRef) (*x509.Certificate, error) {
@@ -527,9 +506,9 @@ func (k *Key) Encrypt(plaintext []byte) ([]byte, error) {
 	if err := k.checkDataSize(plaintext); err != nil {
 		return nil, err
 	}
-	algorithm, errAlgor := k.getEncryptAlgorithm()
-	if errAlgor != nil {
-		fmt.Printf("Algorithm mapping error: %+v\n", errAlgor)
+	algorithm, algorErr := k.getEncryptAlgorithm()
+	if algorErr != nil {
+		fmt.Printf("Algorithm mapping error: %+v\n", algorErr)
 	}
 	msg := bytesToCFData(plaintext)
 	var cfErr C.CFErrorRef
@@ -538,13 +517,13 @@ func (k *Key) Encrypt(plaintext []byte) ([]byte, error) {
 }
 
 func (k *Key) Decrypt(ciphertext []byte) ([]byte, error) {
-	priKey := k.privateKeyRef
-	algorithm, errAlgor := k.getDecryptAlgorithm()
-	if errAlgor != nil {
-		fmt.Printf("Algorithm mapping error: %+v\n", errAlgor)
+	priv := k.privateKeyRef
+	algorithm, algorErr := k.getDecryptAlgorithm()
+	if algorErr != nil {
+		fmt.Printf("Algorithm mapping error: %+v\n", algorErr)
 	}
 	msg := bytesToCFData(ciphertext)
 	var cfErr C.CFErrorRef
-	plaintext := cfDataToBytes(C.SecKeyCreateDecryptedData(priKey, algorithm, msg, &cfErr))
+	plaintext := cfDataToBytes(C.SecKeyCreateDecryptedData(priv, algorithm, msg, &cfErr))
 	return plaintext, cfErrorFromRef(cfErr)
 }

@@ -61,9 +61,9 @@ func TestEncryptRSA(t *testing.T) {
 	}
 	message := []byte("Plain text to encrypt")
 
-	_, errEncrypt := key.EncryptRSA(hashFunc, rng, message)
-	if errEncrypt != nil {
-		t.Errorf("Encrypt error: %q", errEncrypt)
+	_, encryptErr := key.EncryptRSA(hashFunc, rng, message)
+	if encryptErr != nil {
+		t.Errorf("Encrypt error: %q", encryptErr)
 		return
 	}
 	fmt.Println("Encrypted")
@@ -80,9 +80,9 @@ func BenchmarkEncryptRSA(b *testing.B) {
 	message := []byte("Plain text to encrypt")
 
 	for i := 0; i < b.N; i++ {
-		_, errEncrypt := key.EncryptRSA(hashFunc, rng, message)
-		if errEncrypt != nil {
-			b.Errorf("Encrypt error: %q", errEncrypt)
+		_, encryptErr := key.EncryptRSA(hashFunc, rng, message)
+		if encryptErr != nil {
+			b.Errorf("Encrypt error: %q", encryptErr)
 			return
 		}
 	}
@@ -95,9 +95,9 @@ func TestEncrypt(t *testing.T) {
 		return
 	}
 	plaintext := []byte("Plain text to encrypt")
-	ciphertext, errEncrypt := key.Encrypt(plaintext)
-	if errEncrypt != nil {
-		t.Errorf("Encrypt error: %v", errEncrypt)
+	ciphertext, encryptErr := key.Encrypt(plaintext)
+	if encryptErr != nil {
+		t.Errorf("Encrypt error: %v", encryptErr)
 		return
 	}
 	fmt.Printf("Encrypted %+v\n", ciphertext)
@@ -123,9 +123,9 @@ func TestDecrypt(t *testing.T) {
 	}
 	byteSlice := []byte("Plain text to encrypt")
 	ciphertext, _ := key.Encrypt(byteSlice)
-	plaintext, errDecrypt := key.Decrypt(ciphertext)
-	if errDecrypt != nil {
-		t.Errorf("Decrypt error: %v", errDecrypt)
+	plaintext, decryptErr := key.Decrypt(ciphertext)
+	if decryptErr != nil {
+		t.Errorf("Decrypt error: %v", decryptErr)
 		return
 	}
 	plainString := string(plaintext)
