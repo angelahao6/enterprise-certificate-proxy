@@ -62,7 +62,7 @@ func TestEncrypt(t *testing.T) {
 }
 
 func BenchmarkEncrypt(b *testing.B) {
-	key, err := Cred("enterprise_v1_corp_client-signer-0-2018-07-03T10:55:10-07:00 K:1, 2:BXmhnePmGN4:0:18")
+	key, err := Cred("TestIssuer")
 	if err != nil {
 		b.Errorf("Cred error: %q", err)
 		return
@@ -74,7 +74,7 @@ func BenchmarkEncrypt(b *testing.B) {
 }
 
 func TestDecrypt(t *testing.T) {
-	key, err := Cred("enterprise_v1_corp_client-signer-0-2018-07-03T10:55:10-07:00 K:1, 2:BXmhnePmGN4:0:18")
+	key, err := Cred("TestIssuer")
 	if err != nil {
 		t.Errorf("Cred error: %q", err)
 		return
