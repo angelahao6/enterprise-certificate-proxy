@@ -71,7 +71,7 @@ var (
 	}
 )
 
-var UNKNOWN_SECKEY_ALGORITHM = C.CFStringRef(0)
+const UNKNOWN_SECKEY_ALGORITHM = C.CFStringRef(0)
 var INVALID_KEY = C.SecKeyRef(0)
 
 // cfStringToString returns a Go string given a CFString.
