@@ -22,6 +22,8 @@ import (
 	"unsafe"
 )
 
+const TEST_CREDENTIALS = "TestIssuer"
+
 func TestKeychainError(t *testing.T) {
 	tests := []struct {
 		e    keychainError
@@ -48,7 +50,7 @@ func TestBytesToCFDataRoundTrip(t *testing.T) {
 }
 
 func TestEncrypt(t *testing.T) {
-	key, err := Cred("TestIssuer")
+	key, err := Cred(TEST_CREDENTIALS)
 	if err != nil {
 		t.Errorf("Cred error: %q", err)
 		return
@@ -62,7 +64,7 @@ func TestEncrypt(t *testing.T) {
 }
 
 func BenchmarkEncrypt(b *testing.B) {
-	key, err := Cred("TestIssuer")
+	key, err := Cred(TEST_CREDENTIALS)
 	if err != nil {
 		b.Errorf("Cred error: %q", err)
 		return
@@ -74,7 +76,7 @@ func BenchmarkEncrypt(b *testing.B) {
 }
 
 func TestDecrypt(t *testing.T) {
-	key, err := Cred("TestIssuer")
+	key, err := Cred(TEST_CREDENTIALS)
 	if err != nil {
 		t.Errorf("Cred error: %q", err)
 		return
@@ -92,7 +94,7 @@ func TestDecrypt(t *testing.T) {
 }
 
 func BenchmarkDecrypt(b *testing.B) {
-	key, err := Cred("TestIssuer")
+	key, err := Cred(TEST_CREDENTIALS)
 	if err != nil {
 		b.Errorf("Cred error: %q", err)
 		return
