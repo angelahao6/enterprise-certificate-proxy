@@ -22,7 +22,7 @@ import (
 	"unsafe"
 )
 
-const TEST_CREDENTIALS = "TestIssuer"
+const TEST_CREDENTIALS = "TestIssuer2048"
 
 func TestKeychainError(t *testing.T) {
 	tests := []struct {
