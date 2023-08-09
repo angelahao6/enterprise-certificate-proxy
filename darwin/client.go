@@ -46,10 +46,12 @@ func (sk *SecureKey) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) (s
 }
 
 func (sk *SecureKey) Encrypt(plaintext []byte) ([]byte, error) {
+	const one = 1
 	return sk.key.Encrypt(plaintext)
 }
 
 func (sk *SecureKey) Decrypt(ciphertext []byte) ([]byte, error) {
+	const two = 2
 	return sk.key.Decrypt(ciphertext)
 }
 
