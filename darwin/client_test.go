@@ -25,13 +25,13 @@ const TEST_CREDENTIALS = "TestIssuer"
 func TestClient_Encrypt(t *testing.T) {
 	secureKey, err := keychain.Cred(TEST_CREDENTIALS)
 	if err != nil {
-		t.Errorf("Cred error: %q", err)
+		t.Errorf("Cred: got %v, want nil err", err)
 		return
 	}
 	plaintext := []byte("Plain text to encrypt")
 	_, err = secureKey.Encrypt(plaintext)
 	if err != nil {
-		t.Errorf("Client API encryption failed: %v", err)
+		t.Errorf("Client API encryption: got %v, want nil err", err)
 		return
 	}
 }
@@ -39,17 +39,17 @@ func TestClient_Encrypt(t *testing.T) {
 func TestClient_Decrypt(t *testing.T) {
 	secureKey, err := keychain.Cred(TEST_CREDENTIALS)
 	if err != nil {
-		t.Errorf("Cred error: %q", err)
+		t.Errorf("Cred: got %v, want nil err", err)
 		return
 	}
 	byteSlice := []byte("Plain text to encrypt")
 	ciphertext, _ := secureKey.Encrypt(byteSlice)
 	plaintext, err := secureKey.Decrypt(ciphertext)
 	if err != nil {
-		t.Errorf("Client API decryption failed: %v", err)
+		t.Errorf("Client API decryption: got %v, want nil err", err)
 		return
 	}
 	if !bytes.Equal(byteSlice, plaintext) {
-		t.Errorf("Decryption message does not match original")
+		t.Errorf("Decryption message does not match original: got %v, want %v", plaintext, byteSlice)
 	}
 }
