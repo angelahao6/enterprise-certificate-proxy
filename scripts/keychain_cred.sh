@@ -18,7 +18,7 @@ set -eux
 PASSWORD="1234"
 WORK_DIR=$(mktemp -d)
 
-pushd ${WORK_DIR}
+pushd "${WORK_DIR}"
 
 openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -sha256 -days 5 -nodes -subj "/C=US/ST=WA/L=Kirkland/O=Temp/OU=CI/CN=TestIssuer/emailAddress=dev@example.com"
 openssl pkcs12 -inkey key.pem -in cert.pem -export -out cred.p12 -passin pass:${PASSWORD} -passout pass:${PASSWORD}
