@@ -97,6 +97,19 @@ func TestClient_Sign(t *testing.T) {
 	}
 }
 
+func TestClient_Encrypt(t *testing.T) {
+	key, err := Cred("testdata/certificate_config.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plaintext := []byte("Plain text to encrypt")
+	_, err = key.Encrypt(plaintext)
+	if err != nil {
+		t.Errorf("Universal Client API encryption: got %v, want nil err", err)
+		return
+	}
+}
+
 func TestClient_Sign_HashSizeMismatch(t *testing.T) {
 	key, err := Cred("testdata/certificate_config.json")
 	if err != nil {
