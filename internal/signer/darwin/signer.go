@@ -96,6 +96,11 @@ func (k *EnterpriseCertSigner) Sign(args SignArgs, resp *[]byte) (err error) {
 	return
 }
 
+func (k *EnterpriseCertSigner) Encrypt(plaintext []byte, resp *[]byte) (err error) {
+	*resp, err = k.key.Encrypt(plaintext)
+	return
+}
+
 func main() {
 	enableECPLogging()
 	if len(os.Args) != 2 {

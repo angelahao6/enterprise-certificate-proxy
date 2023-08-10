@@ -35,6 +35,7 @@ import (
 const signAPI = "EnterpriseCertSigner.Sign"
 const certificateChainAPI = "EnterpriseCertSigner.CertificateChain"
 const publicKeyAPI = "EnterpriseCertSigner.Public"
+const encryptAPI = "EnterpriseCertSigner.Encrypt"
 
 // A Connection wraps a pair of unidirectional streams as an io.ReadWriteCloser.
 type Connection struct {
@@ -104,6 +105,11 @@ func (k *Key) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) (signed [
 		return nil, fmt.Errorf("Digest length of %v bytes does not match Hash function size of %v bytes", len(digest), opts.HashFunc().Size())
 	}
 	err = k.client.Call(signAPI, SignArgs{Digest: digest, Opts: opts}, &signed)
+	return
+}
+
+func (k *Key) Encrypt(plaintext []byte) (ciphertext []byte, err error) {
+	err = k.client.Call(encryptAPI, plaintext, &ciphertext)
 	return
 }
 
