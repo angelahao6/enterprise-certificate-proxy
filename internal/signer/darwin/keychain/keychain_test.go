@@ -52,13 +52,13 @@ func TestBytesToCFDataRoundTrip(t *testing.T) {
 func TestEncrypt(t *testing.T) {
 	key, err := Cred(TEST_CREDENTIALS)
 	if err != nil {
-		t.Errorf("Cred error: %q", err)
+		t.Errorf("Cred: got %v, want nil err", err)
 		return
 	}
 	plaintext := []byte("Plain text to encrypt")
 	_, err = key.Encrypt(plaintext)
 	if err != nil {
-		t.Errorf("Encryption failed: %v", err)
+		t.Errorf("Encrypt: got %v, want nil err", err)
 		return
 	}
 }
@@ -66,42 +66,48 @@ func TestEncrypt(t *testing.T) {
 func BenchmarkEncrypt(b *testing.B) {
 	key, err := Cred(TEST_CREDENTIALS)
 	if err != nil {
-		b.Errorf("Cred error: %q", err)
+		b.Errorf("Cred: got %v, want nil err", err)
 		return
 	}
 	plaintext := []byte("Plain text to encrypt")
 	for i := 0; i < b.N; i++ {
-		key.Encrypt(plaintext)
+		_, err := key.Encrypt(plaintext)
+		if err != nil {
+			b.Errorf("Encrypt: got %v, want nil err", err)
+		}
 	}
 }
 
 func TestDecrypt(t *testing.T) {
 	key, err := Cred(TEST_CREDENTIALS)
 	if err != nil {
-		t.Errorf("Cred error: %q", err)
+		t.Errorf("Cred: got %v, want nil err", err)
 		return
 	}
 	byteSlice := []byte("Plain text to encrypt")
 	ciphertext, _ := key.Encrypt(byteSlice)
 	plaintext, err := key.Decrypt(ciphertext)
 	if err != nil {
-		t.Errorf("Decryption failed: %v", err)
+		t.Errorf("Decrypt: got %v, want nil err", err)
 		return
 	}
 	if !bytes.Equal(byteSlice, plaintext) {
-		t.Errorf("Decryption message does not match original")
+		t.Errorf("Decryption message does not match original: got %v, want %v", plaintext, byteSlice)
 	}
 }
 
 func BenchmarkDecrypt(b *testing.B) {
 	key, err := Cred(TEST_CREDENTIALS)
 	if err != nil {
-		b.Errorf("Cred error: %q", err)
+		b.Errorf("Cred: got %v, want nil err", err)
 		return
 	}
 	byteSlice := []byte("Plain text to encrypt")
 	ciphertext, _ := key.Encrypt(byteSlice)
 	for i := 0; i < b.N; i++ {
-		key.Decrypt(ciphertext)
+		_, err := key.Decrypt(ciphertext)
+		if err != nil {
+			b.Errorf("Decrypt: got %v, want nil err", err)
+		}
 	}
 }
