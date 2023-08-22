@@ -562,6 +562,12 @@ func (k *Key) Decrypt(ciphertext []byte) ([]byte, error) {
 	}
 	msg := bytesToCFData(ciphertext)
 	var cfErr C.CFErrorRef
-	plaintext := cfDataToBytes(C.SecKeyCreateDecryptedData(priv, algorithm, msg, &cfErr))
+	bytes := C.SecKeyCreateDecryptedData(priv, algorithm, msg, &cfErr)
+
+	if cfErr != 0 {
+		return nil, cfErrorFromRef(cfErr)
+	}
+
+	plaintext := cfDataToBytes(bytes)
 	return plaintext, cfErrorFromRef(cfErr)
 }
