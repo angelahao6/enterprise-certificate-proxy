@@ -30,9 +30,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -50,6 +48,9 @@ var (
 		crypto.SHA256: C.kSecKeyAlgorithmECDSASignatureDigestX962SHA256,
 		crypto.SHA384: C.kSecKeyAlgorithmECDSASignatureDigestX962SHA384,
 		crypto.SHA512: C.kSecKeyAlgorithmECDSASignatureDigestX962SHA512,
+	}
+	ecAlgorithms = map[crypto.Hash]C.CFStringRef{
+		crypto.SHA256: C.kSecKeyAlgorithmECIESEncryptionStandardX963SHA256AESGCM,
 	}
 	rsaRaw = map[crypto.Hash]C.CFStringRef{
 		crypto.SHA256: C.kSecKeyAlgorithmRSAEncryptionRaw,
@@ -446,18 +447,10 @@ func certIn(xc *x509.Certificate, xcs []*x509.Certificate) bool {
 	return false
 }
 
-func (k *Key) encryptRSA(plaintext []byte) ([]byte, error) {
-	hash := sha256.New()
-	rng := rand.Reader
-	pub := k.Public()
-	rsaPub := pub.(*rsa.PublicKey)
-	return rsa.EncryptOAEP(hash, rng, rsaPub, plaintext, nil)
-}
-
 func (k *Key) getPaddingSize() int {
-	algorithms, algoErr := k.getEncryptAlgorithm()
+	algorithms, algoErr := k.getRSAEncryptAlgorithm()
 	if algoErr != nil {
-		fmt.Printf("algorithm is unsupported. only RSA algorithms are supported. %v", algoErr)
+		fmt.Printf("algorithm is unsupported. only ECDSA and RSA algorithms are supported. %v", algoErr)
 	}
 	// Each padding scheme has varying number of bytes.
 	pssPaddingBytes := 20
@@ -490,19 +483,24 @@ func (k *Key) checkDataSize(plaintext []byte) error {
 	return nil
 }
 
+func (k *Key) getECEncryptAlgorithm() (C.SecKeyAlgorithm, error) {
+	var algorithms map[crypto.Hash]C.CFStringRef
+	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmECIESEncryptionCofactorX963SHA256AESGCM) == 1 {
+		algorithms = ecAlgorithms
+	} else {
+		return UNKNOWN_SECKEY_ALGORITHM, fmt.Errorf("no other EC algorithm is supported. Check public key")
+	}
+	return algorithms[k.hash], nil
+}
+
 func (k *Key) getRSAEncryptAlgorithm() (C.SecKeyAlgorithm, error) {
 	var algorithms map[crypto.Hash]C.CFStringRef
-	switch pub := k.Public().(type) {
-	case *rsa.PublicKey:
-		if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSASignatureDigestPSSSHA256) == 1 {
-			algorithms = rsaPSSAlgorithms
-		} else if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSAEncryptionOAEPSHA256) == 1 {
-			algorithms = rsaOAEPAlgorithms
-		} else if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA256) == 1 {
-			algorithms = rsaPKCS1v15Algorithms
-		}
-	default:
-		return UNKNOWN_SECKEY_ALGORITHM, fmt.Errorf("algorithm is unsupported. only RSA algorithms are supported. %T", pub)
+	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSASignatureDigestPSSSHA256) == 1 {
+		algorithms = rsaPSSAlgorithms
+	} else if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSAEncryptionOAEPSHA256) == 1 {
+		algorithms = rsaOAEPAlgorithms
+	} else if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeEncrypt, C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA256) == 1 {
+		algorithms = rsaPKCS1v15Algorithms
 	}
 	return algorithms[k.hash], nil
 }
@@ -511,28 +509,45 @@ func (k *Key) getEncryptAlgorithm() (C.SecKeyAlgorithm, error) {
 	if k.hash == 0 {
 		k.hash = crypto.SHA256
 	}
-	return k.getRSAEncryptAlgorithm()
+	switch pub := k.Public().(type) {
+	case *ecdsa.PublicKey:
+		return k.getECEncryptAlgorithm()
+	case *rsa.PublicKey:
+		return k.getRSAEncryptAlgorithm()
+	default:
+		return UNKNOWN_SECKEY_ALGORITHM, fmt.Errorf("algorithm is unsupported. only ECDSA and RSA algorithms are supported. %T", pub)
+	}
+}
+
+func (k *Key) getECDecryptAlgorithm() (C.SecKeyAlgorithm, error) {
+	var algorithms map[crypto.Hash]C.CFStringRef
+	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeDecrypt, C.kSecKeyAlgorithmECIESEncryptionCofactorX963SHA256AESGCM) == 1 {
+		algorithms = ecAlgorithms
+	}
+	return algorithms[k.hash], nil
 }
 
 func (k *Key) getRSADecryptAlgorithm() (C.SecKeyAlgorithm, error) {
 	var algorithms map[crypto.Hash]C.CFStringRef
-	switch pub := k.Public().(type) {
-	case *rsa.PublicKey:
-		if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeDecrypt, C.kSecKeyAlgorithmRSASignatureDigestPSSSHA256) == 1 {
-			algorithms = rsaPSSAlgorithms
-		} else if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeDecrypt, C.kSecKeyAlgorithmRSAEncryptionOAEPSHA256) == 1 {
-			algorithms = rsaOAEPAlgorithms
-		} else if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeDecrypt, C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA256) == 1 {
-			algorithms = rsaPKCS1v15Algorithms
-		}
-	default:
-		return UNKNOWN_SECKEY_ALGORITHM, fmt.Errorf("algorithm is unsupported. only RSA algorithms are supported. %T", pub)
+	if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeDecrypt, C.kSecKeyAlgorithmRSASignatureDigestPSSSHA256) == 1 {
+		algorithms = rsaPSSAlgorithms
+	} else if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeDecrypt, C.kSecKeyAlgorithmRSAEncryptionOAEPSHA256) == 1 {
+		algorithms = rsaOAEPAlgorithms
+	} else if C.SecKeyIsAlgorithmSupported(k.publicKeyRef, C.kSecKeyOperationTypeDecrypt, C.kSecKeyAlgorithmRSASignatureDigestPKCS1v15SHA256) == 1 {
+		algorithms = rsaPKCS1v15Algorithms
 	}
 	return algorithms[k.hash], nil
 }
 
 func (k *Key) getDecryptAlgorithm() (C.SecKeyAlgorithm, error) {
-	return k.getRSADecryptAlgorithm()
+	switch pub := k.Public().(type) {
+	case *ecdsa.PublicKey:
+		return k.getECDecryptAlgorithm()
+	case *rsa.PublicKey:
+		return k.getRSADecryptAlgorithm()
+	default:
+		return UNKNOWN_SECKEY_ALGORITHM, fmt.Errorf("algorithm is unsupported. only ECDSA and RSA algorithms are supported. %T", pub)
+	}
 }
 
 func (k *Key) Encrypt(plaintext []byte) ([]byte, error) {
@@ -544,13 +559,15 @@ func (k *Key) Encrypt(plaintext []byte) ([]byte, error) {
 	if err := k.checkDataSize(plaintext); err != nil {
 		return nil, err
 	}
-	// encryptRSA encrypts SHA256 using the OAEP padding scheme.
-	if algorithm == C.kSecKeyAlgorithmRSAEncryptionOAEPSHA256 {
-		return k.encryptRSA(plaintext)
-	}
 	msg := bytesToCFData(plaintext)
 	var cfErr C.CFErrorRef
-	ciphertext := cfDataToBytes(C.SecKeyCreateEncryptedData(pub, algorithm, msg, &cfErr))
+	bytes := C.SecKeyCreateEncryptedData(pub, algorithm, msg, &cfErr)
+
+	if cfErr != 0 {
+		return nil, cfErrorFromRef(cfErr)
+	}
+
+	ciphertext := cfDataToBytes(bytes)
 	return ciphertext, cfErrorFromRef(cfErr)
 }
 

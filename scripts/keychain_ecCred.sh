@@ -17,13 +17,15 @@ set -eux
 
 PASSWORD="1234"
 WORK_DIR=$(mktemp -d)
-KEYCHAIN="BuildTest.keychain"
+KEYCHAIN="BuildECTest.keychain"
 KEYCHAIN_TEST_BINARY=$(echo "$PWD/$(find . -iname keychain.test)")
 
 pushd "${WORK_DIR}"
 
-openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -sha256 -days 5 -nodes -subj "/C=US/ST=WA/L=Kirkland/O=Temp/OU=CI/CN=TestIssuer/emailAddress=dev@example.com" 
-openssl pkcs12 -inkey key.pem -in cert.pem -export -out cred.p12 -passin pass:${PASSWORD} -passout pass:${PASSWORD} -legacy
+openssl ecparam -name prime256v1 -genkey -noout -out eckey.pem
+openssl ec -in eckey.pem -pubout -out ecpubkey.pem
+openssl req -new -x509 -key eckey.pem -out eccert.pem -days 5
+openssl pkcs12 -export -inkey eckey.pem -in eccert.pem -out eccred.p12 -passin pass:${PASSWORD} -passout pass:${PASSWORD} -legacy
 
 security create-keychain -p ${PASSWORD} ${KEYCHAIN}
 
@@ -35,7 +37,7 @@ security list-keychains -d user -s ${KEYCHAIN}
 
 security default-keychain -s "${KEYCHAIN}"
 
-security import cred.p12 -P ${PASSWORD} -k ${KEYCHAIN} -A
+security import eccred.p12 -P ${PASSWORD} -k ${KEYCHAIN} -A
 security unlock-keychain -p ${PASSWORD} ${KEYCHAIN}
 
 # Sign the test binary
