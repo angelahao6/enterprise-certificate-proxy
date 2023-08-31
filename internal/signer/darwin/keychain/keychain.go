@@ -30,9 +30,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -446,14 +444,6 @@ func certIn(xc *x509.Certificate, xcs []*x509.Certificate) bool {
 	return false
 }
 
-func (k *Key) encryptRSA(plaintext []byte) ([]byte, error) {
-	hash := sha256.New()
-	rng := rand.Reader
-	pub := k.Public()
-	rsaPub := pub.(*rsa.PublicKey)
-	return rsa.EncryptOAEP(hash, rng, rsaPub, plaintext, nil)
-}
-
 func (k *Key) getPaddingSize() int {
 	algorithms, algoErr := k.getEncryptAlgorithm()
 	if algoErr != nil {
@@ -544,13 +534,15 @@ func (k *Key) Encrypt(plaintext []byte) ([]byte, error) {
 	if err := k.checkDataSize(plaintext); err != nil {
 		return nil, err
 	}
-	// encryptRSA encrypts SHA256 using the OAEP padding scheme.
-	if algorithm == C.kSecKeyAlgorithmRSAEncryptionOAEPSHA256 {
-		return k.encryptRSA(plaintext)
-	}
 	msg := bytesToCFData(plaintext)
 	var cfErr C.CFErrorRef
-	ciphertext := cfDataToBytes(C.SecKeyCreateEncryptedData(pub, algorithm, msg, &cfErr))
+	bytes := C.SecKeyCreateEncryptedData(pub, algorithm, msg, &cfErr)
+
+	if cfErr != 0 {
+		return nil, cfErrorFromRef(cfErr)
+	}
+
+	ciphertext := cfDataToBytes(bytes)
 	return ciphertext, cfErrorFromRef(cfErr)
 }
 
